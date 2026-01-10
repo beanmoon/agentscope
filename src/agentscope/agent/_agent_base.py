@@ -263,11 +263,7 @@ class AgentBase(StateModule, metaclass=_AgentMeta):
                 player, _ = self._stream_prefix[msg.id]["audio"]
                 # Close the miniaudio player
                 player.close()
-            stream_prefix = self._stream_prefix.pop(msg.id)
-            if "text" in stream_prefix and not stream_prefix["text"].endswith(
-                "\n",
-            ):
-                print()
+            self._stream_prefix.pop(msg.id)
 
     def _process_audio_block(
         self,
@@ -397,7 +393,8 @@ class AgentBase(StateModule, metaclass=_AgentMeta):
 
         # Only print when there is new text content
         if len(to_print) > len(text_prefix):
-            print(to_print[len(text_prefix) :], end="")
+            new_content = to_print[len(text_prefix):]
+            logger.info(new_content.rstrip("\n") if new_content else "")
 
             # Save the printed text prefix
             self._stream_prefix[msg_id]["text"] = to_print
@@ -428,18 +425,11 @@ class AgentBase(StateModule, metaclass=_AgentMeta):
 
         text_prefix = self._stream_prefix.get(msg.id, {}).get("text", "")
 
+        block_json = json.dumps(block, indent=4, ensure_ascii=False)
         if text_prefix:
-            # Add a newline to separate from previous text content
-            print_newline = "" if text_prefix.endswith("\n") else "\n"
-            print(
-                f"{print_newline}"
-                f"{json.dumps(block, indent=4, ensure_ascii=False)}",
-            )
+            logger.info(block_json)
         else:
-            print(
-                f"{msg.name}:"
-                f" {json.dumps(block, indent=4, ensure_ascii=False)}",
-            )
+            logger.info(f"{msg.name}: {block_json}")
 
     async def __call__(self, *args: Any, **kwargs: Any) -> Msg:
         """Call the reply function with the given arguments."""
