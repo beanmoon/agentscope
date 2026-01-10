@@ -12,7 +12,7 @@ from typing import (
     Type,
 )
 from collections import OrderedDict
-
+import json
 from pydantic import BaseModel
 
 from . import ChatResponse
@@ -155,6 +155,7 @@ class OpenAIChatModel(ChatModelBase):
                 **(client_kwargs or {}),
             )
 
+        self.base_url = (client_kwargs or {}).get("base_url", "https://api.openai.com/v1")
         self.reasoning_effort = reasoning_effort
         self.generate_kwargs = generate_kwargs or {}
 
@@ -254,6 +255,12 @@ class OpenAIChatModel(ChatModelBase):
 
         start_datetime = datetime.now()
 
+        # Log LLM input
+        logger.info(f"[OpenAI LLM Input] base_url={self.base_url}, model={self.model_name}")
+        kwargs_copy = kwargs.copy()
+        kwargs_copy.pop("tools", None)
+        logger.info(f"kwargs: {json.dumps(kwargs_copy, indent=2, ensure_ascii=False)}")
+
         if structured_model:
             if tools or tool_choice:
                 logger.warning(
@@ -290,6 +297,12 @@ class OpenAIChatModel(ChatModelBase):
             start_datetime,
             response,
             structured_model,
+        )
+
+        # Log LLM output (non-streaming)
+        logger.info(
+            f"[OpenAI LLM Output] model={self.model_name}, "
+            f"response={parsed_response}",
         )
 
         return parsed_response
@@ -449,6 +462,13 @@ class OpenAIChatModel(ChatModelBase):
                     metadata=metadata,
                 )
                 yield res
+
+        # Log LLM output (streaming) - log the final accumulated content
+        logger.info(
+            f"[OpenAI LLM Output (stream)] model={self.model_name}, "
+            f"text={text}, thinking={thinking}, "
+            f"tool_calls={dict(tool_calls)}",
+        )
 
     def _parse_openai_completion_response(
         self,
