@@ -114,8 +114,14 @@ def init(
 
     setup_logger(logging_level, logging_path)
 
+    # Phoenix tracing 先初始化，创建全局 TracerProvider
+    if tracing_url:
+        from .tracing import setup_phoenix_tracing
+        setup_phoenix_tracing(endpoint=tracing_url, project_name=_config.project)
+        _config.trace_enabled = True
+
+    # Studio 初始化，向已有的 TracerProvider 添加 SpanProcessor
     if studio_url:
-        # Register the run
         data = {
             "id": _config.run_id,
             "project": _config.project,
@@ -123,7 +129,6 @@ def init(
             "timestamp": _config.created_at,
             "pid": os.getpid(),
             "status": "running",
-            # Deprecated fields
             "run_dir": "",
         }
         response = requests.post(
@@ -133,7 +138,6 @@ def init(
         response.raise_for_status()
 
         from .agent import UserAgent, StudioUserInput
-
         UserAgent.override_class_input_method(
             StudioUserInput(
                 studio_url=studio_url,
@@ -141,19 +145,12 @@ def init(
                 max_retries=3,
             ),
         )
-
         _equip_as_studio_hooks(studio_url)
 
-    if tracing_url:
-        endpoint = tracing_url
-    else:
-        endpoint = studio_url.strip("/") + "/v1/traces" if studio_url else None
-
-    if endpoint:
         from .tracing import setup_tracing
-
-        setup_tracing(endpoint=endpoint)
+        setup_tracing(endpoint=studio_url.strip("/") + "/v1/traces")
         _config.trace_enabled = True
+
 
 
 __all__ = [
