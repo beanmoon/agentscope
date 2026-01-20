@@ -5,8 +5,36 @@ from opentelemetry.semconv._incubating.attributes import (
 )
 
 
+class OpenInferenceSpanKind:
+    """OpenInference span kind values for Phoenix compatibility."""
+    LLM = "LLM"
+    AGENT = "AGENT"
+    TOOL = "TOOL"
+    EMBEDDING = "EMBEDDING"
+    CHAIN = "CHAIN"
+
+
 class SpanAttributes:
     """The span attributes."""
+
+    # OpenInference attributes for Phoenix compatibility
+    OPENINFERENCE_SPAN_KIND = "openinference.span.kind"
+    INPUT_VALUE = "input.value"
+    INPUT_MIME_TYPE = "input.mime_type"
+    OUTPUT_VALUE = "output.value"
+    OUTPUT_MIME_TYPE = "output.mime_type"
+
+    # OpenInference LLM token count attributes (for Phoenix cumulative tokens)
+    LLM_TOKEN_COUNT_PROMPT = "llm.token_count.prompt"
+    LLM_TOKEN_COUNT_COMPLETION = "llm.token_count.completion"
+    LLM_TOKEN_COUNT_TOTAL = "llm.token_count.total"
+
+    # OpenInference metadata attributes (for Phoenix metadata column)
+    METADATA_MODEL = "metadata.model"
+    METADATA_PROVIDER = "metadata.provider"
+    METADATA_AGENT_NAME = "metadata.agent_name"
+    METADATA_TOOL_NAME = "metadata.tool_name"
+    METADATA_CONVERSATION_ID = "metadata.conversation_id"
 
     # GenAI Common Attributes
     GEN_AI_CONVERSATION_ID = GenAIAttributes.GEN_AI_CONVERSATION_ID
