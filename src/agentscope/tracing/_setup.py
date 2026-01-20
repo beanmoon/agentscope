@@ -55,17 +55,18 @@ def setup_phoenix_tracing(endpoint: str, project_name: str | None = None) -> Non
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+    from openinference.semconv.resource import ResourceAttributes
 
     from ._processor import GenAIToOpenInferenceProcessor
 
     project = project_name or "agentscope"
-    resource = Resource.create({"service.name": project})
+    resource = Resource.create({
+        "service.name": project,
+        ResourceAttributes.PROJECT_NAME: project,
+    })
     provider = TracerProvider(resource=resource)
 
-    exporter = OTLPSpanExporter(
-        endpoint=endpoint,
-        headers={"phoenix-project-name": project},
-    )
+    exporter = OTLPSpanExporter(endpoint=endpoint)
     processor = GenAIToOpenInferenceProcessor(exporter)
     provider.add_span_processor(processor)
 
