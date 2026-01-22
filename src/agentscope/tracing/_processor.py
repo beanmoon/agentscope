@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 """GenAI to OpenInference span processor for Phoenix compatibility."""
+import logging
 from typing import Any, Mapping, Sequence
 
 from opentelemetry.sdk.trace import ReadableSpan, SpanProcessor
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+
+_logger = logging.getLogger(__name__)
 
 
 # GenAI operation name to OpenInference span kind mapping
@@ -188,7 +191,10 @@ class GenAIToOpenInferenceExporter(SpanExporter):
 
     def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
         converted = [self._convert_span(span) for span in spans]
-        return self._wrapped.export(converted)
+        result = self._wrapped.export(converted)
+        for span in converted:
+            _logger.info("Exported span: %s (trace_id=%s)", span.name, span.context.trace_id)
+        return result
 
     def _convert_span(self, span: ReadableSpan) -> ReadableSpan:
         if not span.attributes:
@@ -210,27 +216,32 @@ class GenAIToOpenInferenceExporter(SpanExporter):
 class GenAIToOpenInferenceProcessor(SpanProcessor):
     """SpanProcessor that converts GenAI attributes to OpenInference on export.
 
-    This processor wraps a standard BatchSpanProcessor but uses a converting
-    exporter to add OpenInference attributes before sending to Phoenix.
+    This processor wraps a SpanProcessor and uses a converting exporter to add
+    OpenInference attributes before sending to Phoenix.
     """
 
-    def __init__(self, exporter: SpanExporter, **batch_kwargs: Any) -> None:
-        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    def __init__(
+        self,
+        exporter: SpanExporter,
+        batch: bool = False,
+        **processor_kwargs: Any,
+    ) -> None:
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor, SimpleSpanProcessor
 
         converting_exporter = GenAIToOpenInferenceExporter(exporter)
-        self._batch_processor = BatchSpanProcessor(
-            converting_exporter,
-            **batch_kwargs,
-        )
+        if batch:
+            self._processor = BatchSpanProcessor(converting_exporter, **processor_kwargs)
+        else:
+            self._processor = SimpleSpanProcessor(converting_exporter)
 
     def on_start(self, span, parent_context=None) -> None:
-        self._batch_processor.on_start(span, parent_context)
+        self._processor.on_start(span, parent_context)
 
     def on_end(self, span: ReadableSpan) -> None:
-        self._batch_processor.on_end(span)
+        self._processor.on_end(span)
 
     def shutdown(self) -> None:
-        self._batch_processor.shutdown()
+        self._processor.shutdown()
 
     def force_flush(self, timeout_millis: int = 30000) -> bool:
-        return self._batch_processor.force_flush(timeout_millis)
+        return self._processor.force_flush(timeout_millis)
