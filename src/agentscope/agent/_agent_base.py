@@ -394,7 +394,7 @@ class AgentBase(StateModule, metaclass=_AgentMeta):
         # Only print when there is new text content
         if len(to_print) > len(text_prefix):
             new_content = to_print[len(text_prefix):]
-            logger.info(new_content.rstrip("\n") if new_content else "")
+            logger.debug(new_content.rstrip("\n") if new_content else "")
 
             # Save the printed text prefix
             self._stream_prefix[msg_id]["text"] = to_print

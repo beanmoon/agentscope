@@ -260,10 +260,10 @@ class OpenAIChatModel(ChatModelBase):
         kwargs_copy = kwargs.copy()
         kwargs_copy.pop("tools", None)
         kwargs_str = json.dumps(kwargs_copy, indent=2, ensure_ascii=False)
-        if "image_url" in kwargs_str:
-            logger.info(f"kwargs: [multimodal request, length={len(kwargs_str)}]")
-        else:
-            logger.info(f"kwargs: {kwargs_str}")
+        # if "image_url" in kwargs_str:
+        #     logger.info(f"kwargs: [multimodal request, length={len(kwargs_str)}]")
+        # else:
+        #     logger.info(f"kwargs: {kwargs_str}")
 
         if structured_model:
             if tools or tool_choice:
